@@ -1,7 +1,7 @@
 #include <iostream>
 
 /*
-written by George Strauch on 4/19/2020
+written by George Strauch on 4//2020
 
 c++ program for matrix multiply using 1d arrays on the GPU
 the GPU makes use of parallelism to make processes like this much faster
@@ -17,7 +17,6 @@ struct to represent a matrix.
 
 Execution follows the syntax:
 $ ./exec {int matrix_size} {int print_option}
-
 where the print option can be:
 1: Prints the whole of each matrix for debugging
 and best used with smaller matrices <= 10.
@@ -29,7 +28,6 @@ $ nvcc gpu_mm.cu -o gpu
 $ time ./gpu 10 1
 $ time ./gpu 1500 2
 */
-
 
 
 typedef long long int lli;
@@ -46,10 +44,10 @@ struct Matrix
 
 // fills a matrix with values
 __host__
-void fillMat(Matrix m)
+void fillMat(Matrix *m)
 {
-  for (size_t j = 0; j < m.rows*m.cols; j++) {
-    m.values[j] = j% m.cols;
+  for (size_t j = 0; j < m->rows*m->cols; j++) {
+    m->values[j] = j% m->cols;
   }
 }
 
@@ -57,16 +55,16 @@ void fillMat(Matrix m)
 
 // get a Matrix object with shared memory that can be accessed by the device
 __host__
-Matrix get_shared(int rows, int cols)
+Matrix* get_shared(int rows, int cols)
 {
   Matrix *m;
   cudaMallocManaged(&m, sizeof(Matrix));
   cudaMallocManaged(&m->values, rows*cols*sizeof(lli));
   m->cols = cols;
   m->rows = rows;
-  return *m;
+  std::cout << "m; " << m << '\n';
+  return m;
 }
-
 
 
 // calculate a single element of the matrix result of m1*m2
@@ -74,7 +72,7 @@ Matrix get_shared(int rows, int cols)
 // res_y = res rows = m1 rows  max
 // common = m1_cols and m2_rows
 __global__
-void matmul(Matrix m1, Matrix m2, Matrix res)
+void matmul(Matrix *m1, Matrix *m2, Matrix *res)
 {
   // gets the id for the x and y position within the result
   int idx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -82,12 +80,12 @@ void matmul(Matrix m1, Matrix m2, Matrix res)
 
   // there will be some invalid calls of this fuction
   // this checks to make sure this is calculating a valid element
-  if(idx >= res.cols || idy >= res.rows) { return; }
+  if(idx >= res->cols || idy >= res->rows) { return; }
 
-  int id = idy*res.cols + idx;
-  res.values[id] = 0;
-  for (size_t i = 0; i < m1.cols; i++) {
-    res.values[id] += m1.values[(idy*m1.cols)+i] * m2.values[(i*m2.cols)+idx];
+  int id = idy*res->cols + idx;
+  res->values[id] = 0;
+  for (size_t i = 0; i < m1->cols; i++) {
+    res->values[id] += m1->values[(idy*m1->cols)+i] * m2->values[(i*m2->cols)+idx];
   }
 }
 
@@ -95,11 +93,11 @@ void matmul(Matrix m1, Matrix m2, Matrix res)
 
 // host side function to display matrix
 __host__
-void displayMatrix(Matrix mat)
+void displayMatrix(Matrix *mat)
 {
-  for (size_t i = 0; i < mat.rows; i++) {
-    for (size_t j = 0; j < mat.cols; j++) {
-      std::cout << mat.values[i*mat.cols + j] << ' ';
+  for (size_t i = 0; i < mat->rows; i++) {
+    for (size_t j = 0; j < mat->cols; j++) {
+      std::cout << mat->values[i*mat->cols + j] << ' ';
     }
     std::cout << '\n';
   }
@@ -110,20 +108,21 @@ void displayMatrix(Matrix mat)
 
 // frees memory
 __host__
-void free_matrix(Matrix mat)
+void free_matrix(Matrix *mat)
 {
-  cudaFree(mat.values);
+  cudaFree(mat->values);
+  cudaFree(mat);
 }
 
 
 
 // returns a copy of a matrix
 __host__
-Matrix copyMatrix(Matrix m)
+Matrix* copyMatrix(Matrix *m)
 {
-  Matrix nm = get_shared(m.rows, m.cols);
-  for (size_t i = 0; i < m.cols*m.rows; i++) {
-    nm.values[i] = m.values[i];
+  Matrix *nm = get_shared(m->rows, m->cols);
+  for (size_t i = 0; i < m->cols*m->rows; i++) {
+    nm->values[i] = m->values[i];
   }
   return nm;
 }
@@ -132,12 +131,12 @@ Matrix copyMatrix(Matrix m)
 
 // host side function to transpose
 __host__
-void transpose(Matrix &mat)
+void transpose(Matrix *&mat)
 {
-  Matrix new_mat = get_shared(mat.cols, mat.rows);
-  for (size_t a = 0; a < mat.rows; a++) {
-    for (size_t b = 0; b < mat.cols; b++) {
-      new_mat.values[b*mat.cols + a] = mat.values[a*mat.cols + b];
+  Matrix *new_mat = get_shared(mat->cols, mat->rows);
+  for (size_t a = 0; a < mat->rows; a++) {
+    for (size_t b = 0; b < mat->cols; b++) {
+      new_mat->values[b*mat->cols + a] = mat->values[a*mat->cols + b];
     }
   }
 
@@ -153,12 +152,15 @@ int main(int argc, char const *argv[])
   int N = atoi(argv[1]);
   std::cout << "N: " << N << '\n';
 
-  Matrix t1 = get_shared(N, N);
+  Matrix *t1 = get_shared(N, N);
+  std::cout << "t1: " << &t1 << '\n';
   fillMat(t1);
-  Matrix t2 = copyMatrix(t1);
+  Matrix *t2 = copyMatrix(t1);
   transpose(t2);
 
-  Matrix res = get_shared(t1.rows, t2.cols);
+
+  Matrix *res = get_shared(t1->rows, t2->cols);
+
 
   // options for building the block grid. Subject to Change.
   //------------------------------------------
@@ -179,7 +181,7 @@ int main(int argc, char const *argv[])
   std::cout << "\nstart" << '\n';
   matmul<<<block_grid, threads_in_block>>>(t1, t2, res);
 
-  // Wait for GPU to finish
+  // Wait for GPU to finish before accessing on host
   cudaDeviceSynchronize();
 
   std::cout << "done\n" << '\n';
@@ -198,8 +200,8 @@ int main(int argc, char const *argv[])
       displayMatrix(res);
     }
     else if (atoi(argv[2]) == 2) {
-      std::cout << "first: " << res.values[0] << '\n';
-      std::cout << "last: " << res.values[N*N-1] << '\n';
+      std::cout << "first: " << res->values[0] << '\n';
+      std::cout << "last: " << res->values[N*N-1] << '\n';
       std::cout << '\n';
     }
   }
@@ -209,6 +211,7 @@ int main(int argc, char const *argv[])
   free_matrix(res);
 
   return 0;
+
 }
 
 
