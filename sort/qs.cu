@@ -64,9 +64,8 @@ void overwrite(int* &new_array, int* original, int n)
 
 
 __global__
-void sort(int* array, int n, int* counter)
+void sort(int* array, int n)
 {
-  counter[0]++;
   // dont do anything if array size is 0 or 1
   if (n < 2) { return; }
   int *tmparray;
@@ -93,11 +92,11 @@ void sort(int* array, int n, int* counter)
 
   // if no elements are higher than piv, piv remains at top, so sort bottom n-1
   if (higher == 0) {
-    sort<<<1,1>>>(array, lower_or_equal-1, counter);
+    sort<<<1,1>>>(array, lower_or_equal-1);
   }
   else {
-    sort<<<1,1>>>(array, lower_or_equal, counter);
-    sort<<<1,1>>>(&array[lower_or_equal], higher, counter);
+    sort<<<1,1>>>(array, lower_or_equal);
+    sort<<<1,1>>>(&array[lower_or_equal], higher);
   }
   cudaDeviceSynchronize();
 }
@@ -120,15 +119,13 @@ int verify_in_order(int* array, int n)
 
 int main(int argc, char const *argv[])
 {
-  int *counter;
-  cudaMallocManaged(&counter, 1*sizeof(int));
+
   int N = atoi(argv[1]);
   std::cout << "N = " << N << '\n';
 
   int* a = make_unsorted_array(N);
-  sort<<<1,1>>>(a,  N, counter);
+  sort<<<1,1>>>(a,  N);
   cudaDeviceSynchronize();
-  std::cout << "iii: " << counter[0] << '\n';
 
   int order = verify_in_order(a, N);
 
@@ -137,7 +134,7 @@ int main(int argc, char const *argv[])
   }
   else {
     std::cout << "not in order"  << '\n';
-    // print_array(a, N, order);
+    print_array(a, N, order);
   }
 
   cudaFree(a);
