@@ -63,11 +63,72 @@ void overwrite(int* &new_array, int* original, int n)
 
 
 
+// __global__
+// void sort(int* array, int n)
+// {
+//   // dont do anything if array size is 0 or 1
+//   if (n < 2) { return; }
+//   int *tmparray;
+//   cudaMalloc(&tmparray, n*sizeof(int));
+//
+//   int piv = array[n-1];
+//   int lower_or_equal = 0;   // num of elements lower or equal to piv
+//   int higher = 0;           // num of elements higher to piv
+//
+//   // if element lower or equal to piv, append to bottom of new array
+//   // else, apend to top
+//   // then overwite array with new_array
+//   for (size_t i = 0; i < n; i++) {
+//     if(array[i] <= piv){
+//       tmparray[lower_or_equal] = array[i];
+//       lower_or_equal++;
+//     }
+//     else {
+//       tmparray[n-higher-1] = array[i];
+//       higher++;
+//     }
+//   }
+//   overwrite(tmparray, array, n);
+//
+//   // if no elements are higher than piv, piv remains at top, so sort bottom n-1
+//   if (higher == 0) {
+//     sort<<<1,1>>>(array, lower_or_equal-1);
+//   }
+//   else {
+//     sort<<<1,1>>>(array, lower_or_equal);
+//     sort<<<1,1>>>(&array[lower_or_equal], higher);
+//   }
+//   cudaDeviceSynchronize();
+// }
+
+
+
+
+
+
+
+
+
+
+
+
 __global__
-void sort(int* array, int n)
+void sort(int* array, int l, int h)
 {
   // dont do anything if array size is 0 or 1
-  if (n < 2) { return; }
+  if (l+h < 2) { return; }
+
+  int n;
+
+  if (threadIdx.x == 0){
+    array = array;
+    n = l;
+  }
+  else {
+    array = &array[l];
+    n = h-l;
+  }
+
   int *tmparray;
   cudaMalloc(&tmparray, n*sizeof(int));
 
@@ -92,18 +153,24 @@ void sort(int* array, int n)
 
   // if no elements are higher than piv, piv remains at top, so sort bottom n-1
   if (higher == 0) {
-    sort<<<1,1>>>(array, lower_or_equal-1);
+    sort<<<1,1>>>(array, lower_or_equal, higher);
   }
   else {
-    sort<<<1,1>>>(array, lower_or_equal);
-    sort<<<1,1>>>(&array[lower_or_equal], higher);
+    sort<<<1,2>>>(array, lower_or_equal, higher);
   }
+
   cudaDeviceSynchronize();
 }
 
 
 
-__host__  // returns element index if any element larger than i+1 element, else -1 
+
+
+
+
+
+
+__host__  // retruuns false if any element larger than i+1 element
 int verify_in_order(int* array, int n)
 {
   for (size_t i = 0; i < n-1; i++) {
@@ -124,7 +191,9 @@ int main(int argc, char const *argv[])
   std::cout << "N = " << N << '\n';
 
   int* a = make_unsorted_array(N);
-  sort<<<1,1>>>(a,  N);
+
+  // sort(array, lower_or_equal, higher, n-1);
+  sort<<<1,1>>>(a, N, 0);
   cudaDeviceSynchronize();
 
   int order = verify_in_order(a, N);
