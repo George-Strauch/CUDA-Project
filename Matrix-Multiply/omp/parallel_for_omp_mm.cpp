@@ -1,31 +1,36 @@
 #include <iostream>
-
+#include <omp.h>
 /*
-Written by George Strauch on 4/03/2020
+Written by George Strauch on 5/02/2020
 
 c++ program for matrix multiply using 1d arrays.
-A one dimention array is used over 2d to make better use of cache.
+A one dimension array is used over 2d to make better use of cache.
 This implementation only uses square matrices as they are much
 easier to debug, calculate and work with, however all functions can work with
 non-square matrices too.
 
-The matricies that are multiplied have rows 0 to (n-1), and its
+for this program the matricies that are multiplied have rows 0 to (n-1), and its
 transpose because this ends up making every element in the result equal to
 sum[0 to (n-1)]: n^2
 which makes it much easier to tell if it is working right
 
+this uses open mp to make the program run in parallel. The inner loop
+in sum_row(), made to run in parallel by openmp is the only difference from the
+original cpp mm program but brings a massive time imporvement
+
 Execution follows the syntax:
 $ ./exec {int matrix_size} {int print_option}
 where the print option can be:
+
 1: Prints the whole of each matrix for debugging
 and best used with smaller matrices <= 10.
 2: Shows only the first and last element of the result.
 other or no option: does not print anything.
 
 Example run:
-$ g++ cpu_mm.cpp -std=c++17 -O2 -o cpu
-$ time ./cpu 10 1
-$ time ./cpu 1500 2
+$ g++ full_parallel_omp_mm.cpp -O2 -std=c++17 -fopenmp -o omp_mm
+$ time ./omp_mm 10 1
+$ time ./omp_mm 1500 2
 */
 
 
@@ -61,6 +66,8 @@ void fill_mat(Matrix m)
 int sum_row(Matrix m1, Matrix m2, int m1_row_ind, int m2_col_ind)
 {
   int s = 0;
+
+  #pragma omp parallel for reduction(+:s)
   for (size_t i = 0; i < m1.cols; i++) {
     s += m1.values[m1_row_ind*m1.cols + i] * m2.values[i*m2.cols + m2_col_ind];
   }
@@ -86,6 +93,7 @@ Matrix matmul(Matrix m1, Matrix m2)
 
   // every iteration of the inner loop will find one value in the result
   // outer loop gets each column vector in the result matrix
+  // #pragma omp parallel for collapse(2)
   for (size_t i = 0; i < m2.cols; i++) {
     for (size_t j = 0; j < m1.rows; j++) {
       res.values[j*res.cols + i] = sum_row(m1, m2, j, i);
