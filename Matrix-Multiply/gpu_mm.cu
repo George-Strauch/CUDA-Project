@@ -1,4 +1,10 @@
 #include <iostream>
+// includes CUDA Runtime
+#include <cuda_runtime.h>
+#include <cuda_profiler_api.h>
+
+
+// maybe you need also helpers
 
 /*
 written by George Strauch on 4/19/2020
@@ -25,9 +31,10 @@ and best used with smaller matrices <= 10.
 other or no option: does not print anything.
 
 Example run:
-$ nvcc gpu_mm.cu -o gpu
+$ nvcc gpu_mm.cu -o gpu  //-lcuda
 $ time ./gpu 10 1
-$ time ./gpu 1500 2
+$ time ./gpu 1000 2
+$ sudo nvprof --unified-memory-profiling off ./gpu 500 2
 */
 
 
@@ -152,7 +159,7 @@ int main(int argc, char const *argv[])
   // gets the matrix size from user, see header
   int N = atoi(argv[1]);
   std::cout << "N: " << N << '\n';
-
+  // cudaProfilerStart();
   Matrix t1 = get_shared(N, N);
   fillMat(t1);
   Matrix t2 = copyMatrix(t1);
@@ -207,6 +214,8 @@ int main(int argc, char const *argv[])
   free_matrix(t1);
   free_matrix(t2);
   free_matrix(res);
+
+  // cudaProfilerStop();
 
   return 0;
 }

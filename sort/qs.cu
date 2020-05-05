@@ -88,6 +88,8 @@ void sort(int* array, int n)
       higher++;
     }
   }
+
+  
   overwrite(tmparray, array, n);
 
   // if no elements are higher than piv, piv remains at top, so sort bottom n-1
@@ -103,7 +105,7 @@ void sort(int* array, int n)
 
 
 
-__host__  // returns element index if any element larger than i+1 element, else -1 
+__host__  // returns element index if any element larger than i+1 element, else -1
 int verify_in_order(int* array, int n)
 {
   for (size_t i = 0; i < n-1; i++) {

@@ -32,7 +32,7 @@ int* make_unsorted_array(int n_elements)
 {
   int *a = (int*)malloc(n_elements*sizeof(int));
   for (size_t j = 0; j < n_elements; j++) {
-    a[j] =  rand()%(2*n_elements);
+    a[j] = rand()%(2*n_elements);
   }
   return a;
 }

@@ -28,8 +28,7 @@ and best used with smaller matrices <= 10.
 other or no option: does not print anything.
 
 Example run:
-$ g++ full_parallel_omp_mm.cpp -O2 -std=c++17 -fopenmp -o omp_mm
-$ time ./omp_mm 10 1
+$ g++ parallel_for_omp_mm.cpp -O2 -std=c++17 -fopenmp -o omp_mm$ time ./omp_mm 10 1
 $ time ./omp_mm 1500 2
 */
 
