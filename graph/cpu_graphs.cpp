@@ -1,4 +1,5 @@
 #include<iostream>
+#include <bitset>
 #include<vector>
 
 // edges is an array of edges where every even index is the start
@@ -8,6 +9,57 @@ struct Graph {
     int num_edges;
     int num_verticies;
 };
+
+
+void print_bin(bool* b, int len) {
+  for (size_t i = 0; i < len; i++) {
+    std::cout << b[i];
+  }
+  std::cout << '\n';
+}
+
+
+
+bool* int_to_bin(int num, int len)
+{
+
+  bool* ba = (bool*)malloc(len*sizeof(bool));
+
+  for (int i = 0; i < len; ++i) {
+    // ba[len-i-1] = num%2;
+    ba[i] = num%2;
+    num /= 2;
+  }
+  return ba;
+}
+
+
+
+// expects ba size to = g.num_edges
+bool is_matching(Graph g, bool* ba)
+{
+
+  int *known = (int*)malloc(2*g.num_edges*sizeof(int));
+  int index = 0;
+  for (int i = 0; i < g.num_edges; i++) {
+    if(ba[i])
+    {
+      for (size_t j = 0; j < index; j++) {
+        if(g.edges[2*i] == known[j] || g.edges[2*i+1] == known[j]) {
+          free(known);
+          return false;
+        } // end if
+      }// end inner for
+
+      known[index] = g.edges[2*i];
+      known[index+1] = g.edges[2*i+1];
+      index+=2;
+    }// end if
+  }// end for
+
+  free(known);
+  return true;
+}
 
 
 
@@ -106,33 +158,52 @@ Graph gen_known_graph(int n)
   g.num_verticies = 2*n;
   g.edges = (int*)malloc(2*g.num_edges*sizeof(int));
 
+  int *start = (int*)malloc(3*n*sizeof(int));
+  int *end = (int*)malloc(3*n*sizeof(int));
+
   for (size_t i = 0; i < n; i++) {
-    g.edges[2*i] = i;
-    g.edges[2*i+1] = i+1;
+    start[i] = i;
+    end[i] = (i+1) % n;
   }
 
-  // has overlap with above
-  g.edges[2*n-1] = 0;
-
-  for (size_t i = n; i < g.num_edges; i++) {
-    g.edges[2*i] = i-n;
-    g.edges[2*i+1] = i;
+  for (size_t i = 0; i < n; i++) {
+    start[i+n] = i;
+    end[i+n] = i+n;
   }
 
+  for (size_t i = 0; i < n; i++) {
+    start[i+2*n] = i+n;
+    end[i+2*n] = (i+1) % n;
+  }
+
+  for (size_t i = 0; i < 3*n; i++) {
+    g.edges[2*i] = start[i];
+    g.edges[2*i+1] = end[i];
+  }
   return g;
 }
 
 
 
 int main(int argc, char const *argv[]) {
+  //
+  // Graph g = gen_random_graph(10, 4);
+  // graph_print(g);
+  //
+  // std::cout << '\n';
 
-  Graph g = gen_random_graph(10, 100);
-  graph_print(g);
-
-  std::cout << '\n';
-
-  Graph gg = gen_known_graph(4);
+  Graph gg = gen_known_graph(atoi(argv[1]));
   graph_print(gg);
+
+  int mathcings = 0;
+  bool *b;
+  for (size_t i = 0; i < 1<<gg.num_edges; i++) {
+    b = int_to_bin(i, gg.num_edges);
+    if (is_matching(gg, b)) {
+      mathcings++;
+    }
+  }
+  std::cout << mathcings << '\n';
   return 0;
 }
 
