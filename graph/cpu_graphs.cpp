@@ -201,15 +201,10 @@ int main(int argc, char const *argv[]) {
   }
   std::cout << mathcings << '\n';
 
+  std::cout << "\n" << '\n';
 
-
-
-
-
-std::cout << "\n" << '\n';
-
-Graph h = gen_random_graph(10, 30);
-graph_print(h);
+  Graph h = gen_random_graph(10, 30);
+  graph_print(h);
 
 
 

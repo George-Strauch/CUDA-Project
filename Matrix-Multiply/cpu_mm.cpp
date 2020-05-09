@@ -26,6 +26,10 @@ Example run:
 $ g++ cpu_mm.cpp -std=c++17 -O2 -o cpu
 $ time ./cpu 10 1
 $ time ./cpu 1500 2
+
+to profile:
+$ perf record -e instructions,cache-misses,cache-references,context-switches,task-clock -F 20 --call-graph dwarf ./omp_mm 1500 2
+
 */
 
 

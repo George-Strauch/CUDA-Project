@@ -1,4 +1,9 @@
 #include <iostream>
+#include <cuda.h>
+
+// includes CUDA Runtime
+#include <cuda_runtime.h>
+#include <cuda_profiler_api.h>
 
 /*
 written by George Strauch on 4/21/2020
@@ -9,7 +14,8 @@ Execution follows the syntax:
 $ ./exec {int num of elements}
 
 Example run:
-$ nvcc qs.cu -arch='sm_35' -rdc=true -lcudadevrt -lineinfo -o gpu_q
+$ nvcc gpu_bubble.cu -arch='sm_35' -rdc=true -lcudadevrt -o gpu_q
+or $ nvcc -lineinfo -arch=sm_35 gpu_bubble.cu -o g
 $ time ./gpu_qs 10
 $ time ./gpu_qs 999
 */
@@ -52,55 +58,36 @@ int* make_unsorted_array(int n_elements)
 
 
 
-__device__  // helper function to overwrite section of array
-void overwrite(int* &new_array, int* original, int n)
+__host__
+bool go_again(int* array, int n)
 {
-  for (size_t i = 0; i < n; i++) {
-    original[i] = new_array[i];
+  for (size_t i = 0; i < n-1; i++) {
+    if(array[i] > array[i+1])
+    {
+      return true;
+    }
   }
-  cudaFree(new_array);
+  return false;
 }
 
 
 
 __global__
-void sort(int* array, int n)
+void sort(int* array, int n, int offset)
 {
-  // dont do anything if array size is 0 or 1
-  if (n < 2) { return; }
-  int *tmparray;
-  cudaMalloc(&tmparray, n*sizeof(int));
-
-  int piv = array[n-1];
-  int lower_or_equal = 0;   // num of elements lower or equal to piv
-  int higher = 0;           // num of elements higher to piv
-
-  // if element lower or equal to piv, append to bottom of new array
-  // else, apend to top
-  // then overwite array with new_array
-  for (size_t i = 0; i < n; i++) {
-    if(array[i] <= piv){
-      tmparray[lower_or_equal] = array[i];
-      lower_or_equal++;
-    }
-    else {
-      tmparray[n-higher-1] = array[i];
-      higher++;
-    }
+  int id = 2*threadIdx.x + offset;
+  if (id >= n-1) {
+    return;
   }
 
-
-  overwrite(tmparray, array, n);
-
-  // if no elements are higher than piv, piv remains at top, so sort bottom n-1
-  if (higher == 0) {
-    sort<<<1,1>>>(array, lower_or_equal-1);
+  int tmp;
+  if (array[id] > array[id+1]) {
+    tmp = array[id+1];
+    array[id+1] = array[id];
+    array[id] = tmp;
   }
-  else {
-    sort<<<1,1>>>(array, lower_or_equal);
-    sort<<<1,1>>>(&array[lower_or_equal], higher);
-  }
-  cudaDeviceSynchronize();
+  __syncthreads();
+
 }
 
 
@@ -110,11 +97,21 @@ int verify_in_order(int* array, int n)
 {
   for (size_t i = 0; i < n-1; i++) {
     if (array[i+1] < array[i]) {
-      std::cout << "\nindex: " << i << '\n';
       return i;
     }
   }
   return -1;
+}
+
+
+__host__
+void entry_point(int* array, int n)
+{
+  while (go_again(array, n)) {
+    sort<<<1, n/2>>>(array, n, 0);
+    sort<<<1, n/2>>>(array, n, 1);
+    cudaDeviceSynchronize();
+  }
 }
 
 
@@ -126,8 +123,16 @@ int main(int argc, char const *argv[])
   std::cout << "N = " << N << '\n';
 
   int* a = make_unsorted_array(N);
-  sort<<<1,1>>>(a,  N);
-  cudaDeviceSynchronize();
+
+  cudaProfilerStart();
+
+  // while (go_again(a, N)) {
+  //   sort<<<1, N/2>>>(a, N, 0);
+  //   sort<<<1, N/2>>>(a, N, 1);
+  //   cudaDeviceSynchronize();
+  // }
+  entry_point(a, N);
+  cudaProfilerStop();
 
   int order = verify_in_order(a, N);
 

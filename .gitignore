@@ -4,3 +4,6 @@
 !*.*
 *.out
 **/hide
+
+**/*.data
+**/*.data.old

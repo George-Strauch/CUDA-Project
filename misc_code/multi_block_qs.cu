@@ -31,11 +31,30 @@ void print_array (int *array, int n, int tag_index)
 
 
 
+
 __host__
-int* allocate_shared_array(int n_elements)
+int* allocate_device_array(int n_elements)
 {
   int *a;
-  cudaMallocManaged(&a, n_elements*sizeof(int));
+  cudaMalloc(&a, n_elements*sizeof(int));
+  return a;
+}
+
+
+__host__
+int* allocate_host_array(int n_elements)
+{
+  return (int*)malloc(n_elements*sizeof(int));
+}
+
+
+
+__host__
+int* get_elements(int* &d_array, int n)
+{
+  int *a = allocate_host_array(n);
+  cudaMemcpy(a, d_array, n*sizeof(int), cudaMemcpyDeviceToHost);
+  cudaFree(d_array);
   return a;
 }
 
@@ -44,11 +63,14 @@ int* allocate_shared_array(int n_elements)
 __host__  // makes and returns unsorted array with random elements
 int* make_unsorted_array(int n_elements)
 {
-  int *a = allocate_shared_array(n_elements);
+  int *a = allocate_host_array(n_elements);
   for (size_t j = 0; j < n_elements; j++) {
     a[j] =  rand()%(2*n_elements);
   }
-  return a;
+  int* da = allocate_device_array(n_elements);
+  cudaMemcpy(da, a, n_elements*sizeof(int), cudaMemcpyHostToDevice);
+  free(a);
+  return da;
 }
 
 
@@ -67,20 +89,28 @@ __global__
 void sort(int* array, int n, int lastLE)
 {
 
+  if (threadIdx.x == 2) {
+    return;
+  }
+  if (n < 2) { return; }
+
+  int start;
   if (threadIdx.x == 0) {
     //sort bottom
-    n = lastLE;
+    n = lastLE+1;
+    start = 0;
   }
   else {
     //sort top
-    n = n-lastLE;
-    array = &array[lastLE];
+    n = n-lastLE-1;
+    start = lastLE+1;
   }
 
-
   // dont do anything if array size is 0 or 1
-  if (n < 2) { return; }
-  __shared__ int tmparray[1200];
+
+  extern __shared__ int tmparray[];
+
+
   // cudaMalloc(&tmparray, n*sizeof(int));
 
   int piv = array[n-1];
@@ -90,7 +120,7 @@ void sort(int* array, int n, int lastLE)
   // if element lower or equal to piv, append to bottom of new array
   // else, apend to top
   // then overwite array with new_array
-  for (size_t i = 0; i < n; i++) {
+  for (size_t i = start; i < n; i++) {
     if(array[i] <= piv){
       tmparray[lower_or_equal] = array[i];
       lower_or_equal++;
@@ -100,19 +130,22 @@ void sort(int* array, int n, int lastLE)
       higher++;
     }
   }
+
   __syncthreads();
 
-  overwrite(tmparray, array, n);
 
   // if no elements are higher than piv, piv remains at top, so sort bottom n-1
   if (higher == 0) {
-    sort<<<1,1>>>(array, n-1, n-1);
+    sort<<<1,1, n*sizeof(int)>>>(tmparray, n-1, n-1);
   }
   else {
-    sort<<<2,1>>>(array, n, lower_or_equal);
+    sort<<<2,1, n*sizeof(int)>>>(tmparray, n, lower_or_equal);
   }
 
   __syncthreads();
+  overwrite(tmparray, array, n);
+  __syncthreads();
+
 }
 
 
@@ -131,15 +164,25 @@ int verify_in_order(int* array, int n)
 
 
 
+__host__
+void entry_point(int* array, int n) {
+  sort<<<1,1, n*sizeof(int)>>>(array, n, n);
+}
+
+
+
 int main(int argc, char const *argv[])
 {
 
   int N = atoi(argv[1]);
   std::cout << "N = " << N << '\n';
+  int* array = make_unsorted_array(N);
 
-  int* a = make_unsorted_array(N);
-  sort<<<1,1>>>(a,  N, N);
+  entry_point(array, N);
+  // sort<<<1,1>>>(a,  N, N);
   cudaDeviceSynchronize();
+
+  int *a = get_elements(array, N);
 
   int order = verify_in_order(a, N);
 
