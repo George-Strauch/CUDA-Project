@@ -13,6 +13,38 @@ struct Graph {
 
 
 
+
+
+
+__host__
+int* allocate_device_array(int n_elements)
+{
+  int *a;
+  cudaMalloc(&a, n_elements*sizeof(int));
+  return a;
+}
+
+
+__host__
+int* allocate_host_array(int n_elements)
+{
+  return (int*)malloc(n_elements*sizeof(int));
+}
+
+
+
+__host__
+int* get_elements(int* &d_array, int n)
+{
+  int *a = allocate_host_array(n);
+  cudaMemcpy(a, d_array, n*sizeof(int), cudaMemcpyDeviceToHost);
+  cudaFree(d_array);
+  return a;
+}
+
+
+
+
 __device__
 void concat_bool_array(bool* array1, int len1, bool* array2, int len2, bool* result){
 
@@ -95,16 +127,19 @@ __device__
 bool is_matching(Graph g, bool* ba)
 {
   int *known;
-  cudaMalloc(&known, 2*g.num_edges*sizeof(int))
+  cudaMalloc(&known, 2*g.num_edges*sizeof(int));
   int index = 0;
   for (int i = 0; i < g.num_edges; i++) {
     if(ba[i])
     {
+
       for (size_t j = 0; j < index; j++) {
+
         if(g.edges_start[i] == known[j] || g.edges_end[i] == known[j]) {
           free(known);
           return false;
         } // end if
+
       }// end inner for
 
       known[index] = g.edges_start[i];
@@ -136,33 +171,73 @@ void graph_print(Graph g) {
 
 
 __global__
-void find_n_matchings(Graph g, int first)
+void find_n_matchings(Graph g, int* num_matchings, int instances)
 {
 
-  extern __shared__ bool num_of_matchings[];
+  // extern __shared__ bool num_of_matchings[];
+  int id = threadIdx.x;
   int iter = 1;
-  int len = g.num_edges-first;
-  bool* first_n;
-  bool* next_n;
+  int len = g.num_edges-instances;
+  bool* first_elements;
+  bool* next_elements;
   bool* to_test;
   cudaMalloc(&to_test, (g.num_edges)*sizeof(bool));
-  cudaMalloc(&first_n, (first)*sizeof(bool));
-  cudaMalloc(&next_n, len*sizeof(bool));
+  cudaMalloc(&first_elements, (instances)*sizeof(bool));
+  cudaMalloc(&next_elements, len*sizeof(bool));
 
-  int_to_bin_fill(threadIdx.x, first, first_n);
-  int_to_bin_fill(0, len, next_n);
-  concat_bool_array(first_n, first, next_n, len, to_test);
+  int_to_bin_fill(id, instances, first_elements);
+  int_to_bin_fill(0, len, next_elements);
+  concat_bool_array(first_elements, instances, next_elements, len, to_test);
+  __syncthreads();
 
-  if(is_matching)
-
-  for (size_t i = 1; i < (1<<(g.num_edges-first))); i++) {
-    /* code */
+  if(!is_matching(g, to_test)) {
+    num_matchings[id] = 0;
+    return;
   }
 
+  for (size_t i = 1; i < (1<<len); i++) {
+    int_to_bin_fill(i, len, next_elements);
+    concat_bool_array(first_elements, instances, next_elements, len, to_test);
+  if(is_matching(g, to_test)) {
+      iter++;
+      return;
+    }
+  }
 
+  num_matchings[id] = iter;
 
+  cudaFree(to_test);
+  cudaFree(first_elements);
+  cudaFree(next_elements);
+
+  __syncthreads();
+  return;
 }
 
+
+
+int count(int* &d_array, int len)
+{
+  int total = 0;
+  int * elements = get_elements(d_array, len);
+  for (size_t i = 0; i < len; i++) {
+    total += elements[i];
+  }
+  cudaFree(d_array);
+  free(elements);
+  return total;
+}
+
+
+
+int count_matchings(Graph g)
+{
+  int instances = 5;
+  int* d_array = allocate_device_array(g.num_edges);
+  find_n_matchings<<<1,(1<<instances)>>>(g, d_array, instances);
+  cudaDeviceSynchronize();
+  return count(d_array, g.num_edges);
+}
 
 
 
@@ -279,21 +354,17 @@ int main(int argc, char const *argv[]) {
   Graph gg = gen_known_graph(atoi(argv[1]));
   graph_print(gg);
 
-  int mathcings = 0;
-  bool *b;
-  for (size_t i = 0; i < 1<<gg.num_edges; i++) {
-    b = int_to_bin(i, gg.num_edges);
-    if (is_matching(gg, b)) {
-      mathcings++;
-    }
-  }
-  std::cout << mathcings << '\n';
+  // int *test = allocate_host_array(10);
+  //
+  // for (size_t i = 0; i < 10; i++) {
+  //   test[i] = 10;
+  // }
+  //
+  // std::cout << count(test, ) << '\n';
 
-  std::cout << "\n" << '\n';
 
-  Graph h = gen_random_graph(10, 30);
-  graph_print(h);
-
+  int a = count_matchings(gg);
+  std::cout << a << '\n';
 
 
 
