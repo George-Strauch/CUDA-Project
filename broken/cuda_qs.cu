@@ -89,7 +89,6 @@ void sort(int* array, int n)
     }
   }
 
-
   overwrite(tmparray, array, n);
 
   // if no elements are higher than piv, piv remains at top, so sort bottom n-1
@@ -131,12 +130,18 @@ int main(int argc, char const *argv[])
 
   int order = verify_in_order(a, N);
 
+
   if (order == -1) {
     std::cout << "array is in order" << '\n';
+    if (atoi(argv[2]) != 0) {
+      print_array(a, N, -3);
+    }
   }
   else {
     std::cout << "not in order"  << '\n';
-    print_array(a, N, order);
+    if (atoi(argv[2]) != 0) {
+      print_array(a, N, order);
+    }
   }
 
   cudaFree(a);

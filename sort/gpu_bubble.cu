@@ -14,8 +14,7 @@ Execution follows the syntax:
 $ ./exec {int num of elements}
 
 Example run:
-$ nvcc gpu_bubble.cu -arch='sm_35' -rdc=true -lcudadevrt -o gpu_q
-or $ nvcc -lineinfo -arch=sm_35 gpu_bubble.cu -o g
+$ nvcc gpu_bubble.cu -arch='sm_35' -rdc=true -lineinfo  -lcudadevrt -o gpu_q
 $ time ./gpu_qs 10
 $ time ./gpu_qs 999
 */
@@ -73,12 +72,13 @@ bool go_again(int* array, int n)
 
 
 __global__
-void sort(int* array, int n, int offset)
+void sort(int* array, int n, int offset, int k)
 {
-  int id = 2*threadIdx.x + offset;
-  if (id >= n-1) {
+  int id = 2*(blockIdx.x*blockDim.x + threadIdx.x) + offset + k;
+  if (id >= n) {
     return;
   }
+
 
   int tmp;
   if (array[id] > array[id+1]) {
@@ -88,6 +88,14 @@ void sort(int* array, int n, int offset)
   }
   __syncthreads();
 
+}
+
+
+__host__
+void fill_array(int* a, int n) {
+  for (size_t i = 0; i < n; i++) {
+    a[i] = 0;
+  }
 }
 
 
@@ -107,10 +115,25 @@ int verify_in_order(int* array, int n)
 __host__
 void entry_point(int* array, int n)
 {
+  int t = 512;
+  int b = 512;
+  int count = 0;
+  int total = t*b;
+  dim3 threads(t);
+  dim3 blocks(b);
+  // fill_array(array, n);
   while (go_again(array, n)) {
-    sort<<<1, n/2>>>(array, n, 0);
-    sort<<<1, n/2>>>(array, n, 1);
     cudaDeviceSynchronize();
+    for (size_t i = 0; i < (n/(2*total)) +1; i++) {
+      sort<<<blocks, threads>>>(array, n, 0, i*total);
+      cudaDeviceSynchronize();
+      sort<<<blocks, threads>>>(array, n, 1, i*total);
+    }
+    cudaDeviceSynchronize();
+    count++;
+    if (count > 1.5*n) {
+      break;
+    }
   }
 }
 

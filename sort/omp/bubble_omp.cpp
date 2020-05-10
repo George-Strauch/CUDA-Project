@@ -9,7 +9,7 @@ Execution follows the syntax:
 $ ./exec {int num of elements}
 
 Example run:
-$ g++ bubble.cpp -std=c++17 -O2 -g -o b
+$ g++ bubble.cpp -std=c++17 -O2 -g -fopenmp -o b
 $ time ./b 10
 $ time ./b 99999
 */
@@ -48,6 +48,7 @@ void sort(int* array, int n)
 
   while (!done) {
     done = true;
+    #pragma omp parallel
     for (size_t i = 1; i < n; i++) {
       if (array[i-1] > array[i]) {
         done = false;
@@ -65,13 +66,16 @@ void sort(int* array, int n)
 // retruuns false if any element larger than i+1 element
 bool verify_in_order(int* array, int n)
 {
+  bool to_ret = true;
+  #pragma omp parallel
   for (size_t i = 0; i < n-1; i++) {
     if (array[i+1] < array[i]) {
       std::cout << "\nindex: " << i << '\n';
-      return false;
+      to_ret = false;
+      break;
     }
   }
-  return true;
+  return to_ret;
 }
 
 

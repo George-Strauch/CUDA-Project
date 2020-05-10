@@ -2,6 +2,10 @@
 #include <bitset>
 #include<vector>
 
+// includes CUDA Runtime
+#include <cuda_runtime.h>
+#include <cuda_profiler_api.h>
+
 // edges is an array of edges where every even index is the start
 // vertex and the next (odd) index is the end vertex
 struct Graph {
@@ -13,6 +17,13 @@ struct Graph {
 
 
 
+__host__
+int* allocate_shared_array(int n_elements)
+{
+  int *a;
+  cudaMallocManaged(&a, n_elements*sizeof(int));
+  return a;
+}
 
 
 
@@ -126,34 +137,28 @@ void int_to_bin_fill(int num, int len, bool* array)
 __device__
 bool is_matching(Graph g, bool* ba)
 {
-  int *known;
-  cudaMalloc(&known, 2*g.num_edges*sizeof(int));
-  int index = 0;
-  for (int i = 0; i < g.num_edges; i++) {
-    if(ba[i])
-    {
+    int *known;
+    cudaMalloc(&known, 2*g.num_edges*sizeof(int));
+    int index = 0;
+    for (int i = 0; i < g.num_edges; i++) {
+      if(ba[i])
+      {
+        for (size_t j = 0; j < index; j++) {
+          if(g.edges_start[i] == known[j] || g.edges_end[i] == known[j]) {
+            free(known);
+            return false;
+          } // end if
+        }// end inner for
 
-      for (size_t j = 0; j < index; j++) {
+        known[index] = g.edges_start[i];
+        known[index+1] = g.edges_end[i];
+        index+=2;
+      }// end if
+    }// end for
 
-        if(g.edges_start[i] == known[j] || g.edges_end[i] == known[j]) {
-          free(known);
-          return false;
-        } // end if
-
-      }// end inner for
-
-      known[index] = g.edges_start[i];
-      known[index+1] = g.edges_end[i];
-      index+=2;
-    }// end if
-  }// end for
-
-  cudaFree(known);
-  return true;
+    cudaFree(known);
+    return true;
 }
-
-
-
 
 
 void graph_print(Graph g) {
@@ -174,14 +179,36 @@ __global__
 void find_n_matchings(Graph g, int* num_matchings, int instances)
 {
 
+
   // extern __shared__ bool num_of_matchings[];
   int id = threadIdx.x;
+
+
+
+
+
   int iter = 1;
   int len = g.num_edges-instances;
   bool* first_elements;
   bool* next_elements;
   bool* to_test;
   cudaMalloc(&to_test, (g.num_edges)*sizeof(bool));
+  int_to_bin_fill(id, g.num_edges, to_test);
+
+
+
+
+  if(is_matching(g, to_test)) {
+    iter = 2;
+  }
+  else {
+    iter = 3;
+  }
+
+  num_matchings[id] = iter;
+  return;
+
+
   cudaMalloc(&first_elements, (instances)*sizeof(bool));
   cudaMalloc(&next_elements, len*sizeof(bool));
 
@@ -190,12 +217,12 @@ void find_n_matchings(Graph g, int* num_matchings, int instances)
   concat_bool_array(first_elements, instances, next_elements, len, to_test);
   __syncthreads();
 
-  if(!is_matching(g, to_test)) {
-    num_matchings[id] = 0;
-    return;
-  }
+  // if(!is_matching(g, to_test)) {
+  //   num_matchings[id] = 0;
+  //   return;
+  // }
 
-  for (size_t i = 1; i < (1<<len); i++) {
+  for (size_t i = 0; i < (1<<len); i++) {
     int_to_bin_fill(i, len, next_elements);
     concat_bool_array(first_elements, instances, next_elements, len, to_test);
   if(is_matching(g, to_test)) {
@@ -216,27 +243,35 @@ void find_n_matchings(Graph g, int* num_matchings, int instances)
 
 
 
-int count(int* &d_array, int len)
+int count(int* &s_array, int len)
 {
   int total = 0;
-  int * elements = get_elements(d_array, len);
   for (size_t i = 0; i < len; i++) {
-    total += elements[i];
+
+    std::cout << s_array[i] << '\n';
+    total += s_array[i];
   }
-  cudaFree(d_array);
-  free(elements);
+  cudaFree(s_array);
   return total;
 }
 
 
-
+__host__
 int count_matchings(Graph g)
 {
+  // int instances = 5;
+  // int* d_array = allocate_device_array(g.num_edges);
+  // find_n_matchings<<<1,(1<<instances)>>>(g, d_array, instances);
+  // cudaDeviceSynchronize();
+  // return count(d_array, g.num_edges);
+
+  int possible = 1<<g.num_edges;
   int instances = 5;
-  int* d_array = allocate_device_array(g.num_edges);
-  find_n_matchings<<<1,(1<<instances)>>>(g, d_array, instances);
+  int* s_array = allocate_shared_array(possible);
+
+  find_n_matchings<<<1, possible>>>(g, s_array, instances);
   cudaDeviceSynchronize();
-  return count(d_array, g.num_edges);
+  return count(s_array, possible);
 }
 
 
