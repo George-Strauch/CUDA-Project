@@ -1,10 +1,6 @@
 #include <iostream>
-// includes CUDA Runtime
 #include <cuda_runtime.h>
 #include <cuda_profiler_api.h>
-
-
-// maybe you need also helpers
 
 /*
 written by George Strauch on 4/19/2020
@@ -21,7 +17,7 @@ using dedicated device memory can make the program run faster however its
 make it much more difficult to work with certain datatypes such as the
 struct to represent a matrix.
 
-Execution follows the syntax:
+Execution syntax:
 $ ./exec {int matrix_size} {int print_option}
 
 where the print option can be:
@@ -31,12 +27,12 @@ and best used with smaller matrices <= 10.
 other or no option: does not print anything.
 
 Example run:
-$ nvcc gpu_mm.cu -o gpu  //-lcuda
-$ time ./gpu 10 1
-$ time ./gpu 1000 2
-$ sudo nvprof --unified-memory-profiling off ./gpu 500 2
-*/
+$ nvcc gpu_mm.cu -arch='sm_35' -rdc=true -lineinfo -lcudadevrt -o gpumm
+$ time ./gpumm 10 1
+$ time ./gpumm 1000 2
 
+$ nvprof ./gpu 1500 2
+*/
 
 
 typedef long long int lli;

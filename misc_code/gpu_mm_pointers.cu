@@ -15,7 +15,7 @@ using dedicated device memory can make the program run faster however its
 make it much more difficult to work with certain datatypes such as the
 struct to represent a matrix.
 
-Execution follows the syntax:
+Execution syntax:
 $ ./exec {int matrix_size} {int print_option}
 where the print option can be:
 1: Prints the whole of each matrix for debugging
@@ -24,7 +24,7 @@ and best used with smaller matrices <= 10.
 other or no option: does not print anything.
 
 Example run:
-$ nvcc gpu_mm.cu -o gpu
+$ nvcc gpu_mm_pointers.cu -o gpu
 $ time ./gpu 10 1
 $ time ./gpu 1500 2
 */

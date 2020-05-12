@@ -14,7 +14,7 @@ transpose because this ends up making every element in the result equal to
 sum[0 to (n-1)]: n^2
 which makes it much easier to tell if it is working right
 
-Execution follows the syntax:
+Execution syntax:
 $ ./exec {int matrix_size} {int print_option}
 where the print option can be:
 1: Prints the whole of each matrix for debugging
@@ -30,6 +30,7 @@ $ time ./cpu 1500 2
 to profile:
 $ perf record -e instructions,cache-misses,cache-references,context-switches,task-clock -F 20 --call-graph dwarf ./cpu 1500 2
 */
+
 
 
 // struct to make working with matrices much easier

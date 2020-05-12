@@ -8,15 +8,15 @@
 /*
 written by George Strauch on 4/21/2020
 
-c++ program to sort an array with quicksort algorithm
+c++ program to sort an array with bubblesort on gpu
 
-Execution follows the syntax:
+Execution syntax:
 $ ./exec {int num of elements}
 
 Example run:
-$ nvcc gpu_bubble.cu -arch='sm_35' -rdc=true -lineinfo  -lcudadevrt -o gpu_q
-$ time ./gpu_qs 10
-$ time ./gpu_qs 999
+$ nvcc gpu_bubble.cu -arch='sm_35' -rdc=true -lineinfo -lcudadevrt -o gpu_bs
+$ time ./gpu_bs 10
+$ time ./gpu_bs 20000
 */
 
 

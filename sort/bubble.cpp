@@ -5,13 +5,16 @@ written by George Strauch on 4/21/2020
 
 c++ program to sort an array with quicksort algorithm
 
-Execution follows the syntax:
+Execution syntax:
 $ ./exec {int num of elements}
 
 Example run:
 $ g++ bubble.cpp -std=c++17 -O2 -g -o b
 $ time ./b 10
-$ time ./b 99999
+$ time ./b 20000
+
+$ perf record -e instructions,cache-misses,cache-references,context-switches,task-clock -F 2000 --call-graph dwarf ./b 20000
+$ hotspot perf.data
 */
 
 

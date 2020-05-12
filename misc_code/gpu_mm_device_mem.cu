@@ -13,7 +13,7 @@ non-square matrices too.
 This program does not ((yet)) use a struct to make working with the
 matrices easier as this runs into problems with CUDA however this will change
 
-Execution follows the syntax:
+Execution syntax:
 $ ./exec {int matrix_size} {int print_option}
 where the print option can be:
 1: Prints the whole of each matrix for debugging
@@ -22,7 +22,7 @@ and best used with smaller matrices <= 10.
 other or no option: does not print anything.
 
 Example run:
-$ nvcc gpu_mm.cu -o gpu
+$ nvcc gpu_mm_device_mem.cu -o gpu
 $ time ./gpu 10 1
 $ time ./gpu 1500 2
 */

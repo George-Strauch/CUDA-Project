@@ -2,14 +2,21 @@
 #include <bitset>
 #include<vector>
 
-// edges is an array of edges where every even index is the start
-// vertex and the next (odd) index is the end vertex
+
+/**
+this program will count the matchings in known_graph which should end up being
+3^n.
+**/
+
+
+
 struct Graph {
     int* edges_start;
     int* edges_end;
     int num_edges;
     int num_verticies;
 };
+
 
 
 void print_bin(bool* b, int len) {
@@ -23,9 +30,7 @@ void print_bin(bool* b, int len) {
 
 bool* int_to_bin(int num, int len)
 {
-
   bool* ba = (bool*)malloc(len*sizeof(bool));
-
   for (int i = 0; i < len; ++i) {
     // ba[len-i-1] = num%2;
     ba[i] = num%2;
@@ -39,7 +44,6 @@ bool* int_to_bin(int num, int len)
 // expects ba size to = g.num_edges
 bool is_matching(Graph g, bool* ba)
 {
-
   int *known = (int*)malloc(2*g.num_edges*sizeof(int));
   int index = 0;
   for (int i = 0; i < g.num_edges; i++) {
@@ -155,7 +159,6 @@ Graph gen_random_graph(int num_verticies, int num_edges)
 // generates a predictible graph
 Graph gen_known_graph(int n)
 {
-
   Graph g;
   g.num_edges = 3*n;
   g.num_verticies = 2*n;
@@ -205,9 +208,6 @@ int main(int argc, char const *argv[]) {
 
   Graph h = gen_random_graph(10, 30);
   graph_print(h);
-
-
-
 
   return 0;
 }

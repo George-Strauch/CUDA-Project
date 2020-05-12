@@ -1,13 +1,17 @@
 #include<iostream>
 #include <bitset>
 #include<vector>
-
-// includes CUDA Runtime
 #include <cuda_runtime.h>
 #include <cuda_profiler_api.h>
 
-// edges is an array of edges where every even index is the start
-// vertex and the next (odd) index is the end vertex
+/**
+----------------------------------------------------------------------------
+THIS CODE DOES NOT WORK AND IS ONLY BEING KEPT FOR POSSIBLE FUTURE REFERENCE
+----------------------------------------------------------------------------
+to compile:
+nvcc gpu_graphs.cu -arch='sm_35' -rdc=true -lineinfo  -lcudadevrt -o graph
+**/
+
 struct Graph {
     int* edges_start;
     int* edges_end;

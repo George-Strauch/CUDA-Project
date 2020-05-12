@@ -5,8 +5,8 @@ Written by George Strauch on 5/02/2020
 
 c++ program for matrix multiply using 1d arrays.
 A one dimension array is used over 2d to make better use of cache.
-This implementation only uses square matrices as they are much
-easier to debug, calculate and work with, however all functions can work with
+This implementation only uses square matrices since they are much
+easier to debug, calculate and work with however all functions can work with
 non-square matrices too.
 
 for this program the matricies that are multiplied have rows 0 to (n-1), and its
@@ -18,7 +18,7 @@ this uses open mp to make the program run in parallel. The inner loop
 in sum_row(), made to run in parallel by openmp is the only difference from the
 original cpp mm program but brings a massive time imporvement
 
-Execution follows the syntax:
+Execution syntax:
 $ ./exec {int matrix_size} {int print_option}
 where the print option can be:
 
@@ -31,7 +31,11 @@ Example run:
 $ g++ omp_mm.cpp -O2 -std=c++17 -fopenmp -p -o omp_mm
 $ time ./omp_mm 10 1
 $ time ./omp_mm 1500 2
+
+to profile:
+$ perf record -e instructions,cache-misses,cache-references,context-switches,task-clock -F 20 --call-graph dwarf ./omp_mm 1500 2
 */
+
 
 
 // struct to make working with matrices much easier

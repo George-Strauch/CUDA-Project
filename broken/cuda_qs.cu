@@ -1,15 +1,18 @@
 #include <iostream>
 
 /*
+----------------------------------------------------------------------------
+THIS CODE DOES NOT WORK AND IS ONLY BEING KEPT FOR POSSIBLE FUTURE REFERENCE
+----------------------------------------------------------------------------
 written by George Strauch on 4/21/2020
 
 c++ program to sort an array with quicksort algorithm
 
-Execution follows the syntax:
+Execution syntax:
 $ ./exec {int num of elements}
 
 Example run:
-$ nvcc qs.cu -arch='sm_35' -rdc=true -lcudadevrt -lineinfo -o gpu_q
+$ nvcc qs.cu -arch='sm_35' -rdc=true -lcudadevrt -lineinfo -o gpu_qs
 $ time ./gpu_qs 10
 $ time ./gpu_qs 999
 */
@@ -120,7 +123,6 @@ int verify_in_order(int* array, int n)
 
 int main(int argc, char const *argv[])
 {
-
   int N = atoi(argv[1]);
   std::cout << "N = " << N << '\n';
 

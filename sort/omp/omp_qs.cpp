@@ -5,16 +5,15 @@ written by George Strauch on 4/21/2020
 
 c++ program to sort an array with quicksort algorithm
 
-Execution follows the syntax:
+Execution syntax:
 $ ./exec {int num of elements}
 
 Example run:
 $ g++ omp_qs.cpp -std=c++17 -O2 -g -fopenmp -o omp_qs
 $ time ./omp_qs 10
-$ time ./omp_qs 99999
+$ time ./omp_qs 20000
 
-to perform analysis:
-$ perf record -e instructions,cache-misses,cache-references,context-switches,task-clock -F 1000 --call-graph dwarf ./omp_qs 9999
+$ perf record -e instructions,cache-misses,cache-references,context-switches,task-clock -F 1000 --call-graph dwarf ./omp_qs 20000
 $ hotspot perf.data
 */
 
